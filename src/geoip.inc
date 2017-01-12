@@ -79,6 +79,7 @@ class GeoIP
     public $databaseSegments;
     public $record_length;
     public $shmid;
+    public $shmkey = 0x4f415401;
     public $GEOIP_COUNTRY_CODE_TO_NUMBER = array(
         "" => 0,
         "AP" => 1,
@@ -1374,7 +1375,7 @@ class GeoIP
     );
 }
 
-function geoip_load_shared_mem($file)
+function geoip_load_shared_mem($file, $shmkey = GEOIP_SHM_KEY)
 {
     $fp = fopen($file, "rb");
     if (!$fp) {
@@ -1383,11 +1384,11 @@ function geoip_load_shared_mem($file)
     }
     $s_array = fstat($fp);
     $size = $s_array['size'];
-    if (($shmid = @shmop_open(GEOIP_SHM_KEY, "w", 0, 0))) {
+    if (($shmid = @shmop_open($shmkey, "w", 0, 0))) {
         shmop_delete($shmid);
         shmop_close($shmid);
     }
-    $shmid = shmop_open(GEOIP_SHM_KEY, "c", 0644, $size);
+    $shmid = shmop_open($shmkey, "c", 0644, $size);
     shmop_write($shmid, fread($fp, $size), 0);
     shmop_close($shmid);
 }
@@ -1534,12 +1535,12 @@ function _sharedMemRead($gi, $start, $maxLength)
     return shmop_read($gi->shmid, $start, $readLength);
 }
 
-function geoip_open($filename, $flags)
+function geoip_open($filename, $flags, $shmkey = GEOIP_SHM_KEY)
 {
     $gi = new GeoIP;
     $gi->flags = $flags;
     if ($gi->flags & GEOIP_SHARED_MEMORY) {
-        $gi->shmid = shmop_open(GEOIP_SHM_KEY, "a", 0, 0);
+        $gi->shmid = shmop_open($shmkey, "a", 0, 0);
     } else {
         $gi->filehandle = fopen($filename, "rb") or trigger_error("GeoIP API: Can not open $filename\n", E_USER_ERROR);
         if ($gi->flags & GEOIP_MEMORY_CACHE) {
