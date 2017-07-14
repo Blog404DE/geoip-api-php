@@ -1540,16 +1540,19 @@ function geoip_open($filename, $flags, $shmkey = GEOIP_SHM_KEY)
     $gi = new GeoIP;
     $gi->flags = $flags;
     if ($gi->flags & GEOIP_SHARED_MEMORY) {
-        $gi->shmid = shmop_open($shmkey, "a", 0, 0);
+        $gi->shmid = @shmop_open($shmkey, "a", 0, 0);
     } else {
-        $gi->filehandle = fopen($filename, "rb") or trigger_error("GeoIP API: Can not open $filename\n", E_USER_ERROR);
+        $gi->filehandle = @fopen($filename, "rb") or trigger_error("GeoIP API: Can not open $filename\n", E_USER_ERROR);
         if ($gi->flags & GEOIP_MEMORY_CACHE) {
             $s_array = fstat($gi->filehandle);
             $gi->memory_buffer = fread($gi->filehandle, $s_array['size']);
         }
     }
 
-    $gi = _setup_segments($gi);
+    if($gi->shmid || is_resource($gi->filehandle)) {
+        $gi = _setup_segments($gi);
+    }
+
     return $gi;
 }
 
